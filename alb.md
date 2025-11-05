@@ -154,3 +154,63 @@ sudo yum install -y httpd
 echo "<h1>Hello from $(hostname -f) in private subnet</h1>" > /var/www/html/index.html
 sudo systemctl enable httpd
 sudo systemctl start httpd
+```
+
+## 💻 Step 9: Launch Private EC2 Instances
+1. Go to **EC2 → Launch Instance → From Template**
+2. Choose:
+   - **Launch Template:** `aws-alb-template`
+   - **Subnet:** `private-sn-1a`
+3. Launch instance.
+4. Repeat for **private-sn-1b** subnet.
+
+Now you have **two EC2 instances** in private subnets — one per Availability Zone.
+
+---
+
+### 🎯 Step 10: Create Target Group
+1. Go to **EC2 → Target Groups → Create Target Group**
+2. Type: **Instances**
+3. Name: `aws-alb-tg`
+4. Protocol: **HTTP | Port 80**
+5. VPC: `aws-alb-vpc`
+6. Register both private EC2 instances
+7. Click **Create target group**
+
+---
+
+### ⚖️ Step 11: Create Application Load Balancer (ALB)
+1. Go to **EC2 → Load Balancers → Create Load Balancer → Application Load Balancer**
+2. **Name:** `aws-alb`
+3. **Scheme:** Internet-facing  
+4. **IP Type:** IPv4  
+5. **VPC:** `aws-alb-vpc`
+6. **Availability Zones:**  
+   - `public-sn-1a`  
+   - `public-sn-1b`
+7. **Security Group:** `alb-sg`
+8. **Listener:** HTTP (80) → Forward to `aws-alb-tg`
+9. Click **Create Load Balancer**
+10. Wait until the ALB becomes **Active**
+
+---
+
+### 🔁 Step 12 (Optional): Create Auto Scaling Group (ASG)
+1. Go to **EC2 → Auto Scaling Groups → Create Auto Scaling Group**
+2. Choose **Launch Template → aws-alb-template**
+3. Select VPC: `aws-alb-vpc`
+4. Choose private subnets: `private-sn-1a`, `private-sn-1b`
+5. Attach to existing **Target Group:** `aws-alb-tg`
+6. Set capacity:
+   - Desired: `2`
+   - Minimum: `1`
+   - Maximum: `4`
+7. Click **Create Auto Scaling Group**
+
+This enables automatic scaling and high availability for your backend web servers.
+
+---
+
+### 🌍 Step 13: Test the Setup
+1. Go to **EC2 → Load Balancers**
+2. Copy your **ALB DNS name**, e.g.:
